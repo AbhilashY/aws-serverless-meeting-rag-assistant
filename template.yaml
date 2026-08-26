@@ -11,6 +11,7 @@ Globals:
       Variables:
         TRANSCRIPT_BUCKET: !Sub 'zoom-transcripts-${AWS::AccountId}'
         BEDROCK_KB_ID: !Ref BedrockKBId
+        BEDROCK_DATA_SOURCE_ID: !Ref BedrockDataSourceId  
         OPENSEARCH_ENDPOINT: !Ref OpenSearchEndpoint
         ZOOM_SECRETS_ARN: !Ref ZoomSecretsArn
 
@@ -18,6 +19,10 @@ Parameters:
   BedrockKBId:
     Type: String
     Description: Bedrock Knowledge Base ID
+  
+  BedrockDataSourceId:
+    Type: String
+    Description: Bedrock Knowledge Base Data Source ID    
 
   OpenSearchEndpoint:
     Type: String
