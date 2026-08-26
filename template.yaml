@@ -6,13 +6,12 @@ Globals:
   Function:
     Timeout: 60
     MemorySize: 256
-    Runtime: python3.11
+    Runtime: python3.12
     Environment:
       Variables:
         TRANSCRIPT_BUCKET: !Sub 'zoom-transcripts-${AWS::AccountId}'
         BEDROCK_KB_ID: !Ref BedrockKBId
-        BEDROCK_DATA_SOURCE_ID: !Ref BedrockDataSourceId  
-        OPENSEARCH_ENDPOINT: !Ref OpenSearchEndpoint
+        BEDROCK_DATA_SOURCE_ID: !Ref BedrockDataSourceId
         ZOOM_SECRETS_ARN: !Ref ZoomSecretsArn
 
 Parameters:
@@ -22,11 +21,7 @@ Parameters:
   
   BedrockDataSourceId:
     Type: String
-    Description: Bedrock Knowledge Base Data Source ID    
-
-  OpenSearchEndpoint:
-    Type: String
-    Description: OpenSearch Serverless Collection Endpoint
+    Description: Bedrock Knowledge Base Data Source ID
 
   ZoomSecretsArn:
     Type: String
@@ -87,7 +82,6 @@ Resources:
   LambdaExecutionRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub 'zoom-rag-lambda-role-${AWS::StackName}'
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -123,6 +117,7 @@ Resources:
                   - 'bedrock:Retrieve'
                   - 'bedrock:RetrieveAndGenerate'
                   - 'bedrock:InvokeModel'
+                  - 'bedrock:StartIngestionJob'  
                 Resource: '*'
 
         - PolicyName: SecretsManagerAccess
@@ -189,7 +184,7 @@ Resources:
 
       Environment:
         Variables:
-          BEDROCK_MODEL_ARN: !Sub 'arn:aws:bedrock:${AWS::Region}::foundation-model/anthropic.claude-3-haiku-20240307-v1:0'
+          BEDROCK_MODEL_ID: 'us.anthropic.claude-haiku-4-5-20251001-v1:0'
 
       Events:
         QueryEndpoint:

@@ -1,0 +1,295 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Zoom RAG Insight Engine - Serverless Application Model Template
+Globals:
+  Function:
+    Timeout: 60
+    MemorySize: 256
+    Runtime: python3.12
+    Environment:
+      Variables:
+        TRANSCRIPT_BUCKET:
+          Fn::Sub: zoom-transcripts-${AWS::AccountId}
+        BEDROCK_KB_ID:
+          Ref: BedrockKBId
+        BEDROCK_DATA_SOURCE_ID:
+          Ref: BedrockDataSourceId
+        ZOOM_SECRETS_ARN:
+          Ref: ZoomSecretsArn
+Parameters:
+  BedrockKBId:
+    Type: String
+    Description: Bedrock Knowledge Base ID
+  BedrockDataSourceId:
+    Type: String
+    Description: Bedrock Knowledge Base Data Source ID
+  ZoomSecretsArn:
+    Type: String
+    Description: ARN of Zoom API credentials in Secrets Manager
+  CognitoUserPoolArn:
+    Type: String
+    Description: ARN of the Cognito User Pool used to authorize query requests
+Resources:
+  TranscriptBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName:
+        Fn::Sub: zoom-transcripts-${AWS::AccountId}
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+  FrontendBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName:
+        Fn::Sub: zoom-rag-frontend-${AWS::AccountId}
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: index.html
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+  FrontendBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket:
+        Ref: FrontendBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal: '*'
+          Action:
+          - s3:GetObject
+          Resource:
+            Fn::Sub: ${FrontendBucket.Arn}/*
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+      - PolicyName: TranscriptS3Access
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - s3:GetObject
+            - s3:PutObject
+            Resource:
+            - Fn::Sub: arn:aws:s3:::zoom-transcripts-${AWS::AccountId}/*
+      - PolicyName: BedrockAccess
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - bedrock:Retrieve
+            - bedrock:RetrieveAndGenerate
+            - bedrock:InvokeModel
+            - bedrock:StartIngestionJob
+            Resource: '*'
+      - PolicyName: SecretsManagerAccess
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - secretsmanager:GetSecretValue
+            Resource:
+              Ref: ZoomSecretsArn
+  DataIngestionLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: zoom-data-ingestion
+      CodeUri: DataIngestionLambda
+      Handler: index.lambda_handler
+      Role:
+        Fn::GetAtt:
+        - LambdaExecutionRole
+        - Arn
+      Events:
+        ZoomWebhook:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ZoomRAGApi
+            Path: /ingest
+            Method: POST
+            Auth:
+              Authorizer: NONE
+    Metadata:
+      SamResourceId: DataIngestionLambda
+  DataProcessingLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: zoom-data-processing
+      CodeUri: DataProcessingLambda
+      Handler: index.lambda_handler
+      Role:
+        Fn::GetAtt:
+        - LambdaExecutionRole
+        - Arn
+      Events:
+        S3EventRule:
+          Type: S3
+          Properties:
+            Bucket:
+              Ref: TranscriptBucket
+            Events:
+            - s3:ObjectCreated:*
+            Filter:
+              S3Key:
+                Rules:
+                - Name: prefix
+                  Value: transcripts/raw/
+                - Name: suffix
+                  Value: .vtt
+    Metadata:
+      SamResourceId: DataProcessingLambda
+  QueryLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: zoom-query-handler
+      CodeUri: QueryLambda
+      Handler: index.lambda_handler
+      Role:
+        Fn::GetAtt:
+        - LambdaExecutionRole
+        - Arn
+      Environment:
+        Variables:
+          BEDROCK_MODEL_ID: us.anthropic.claude-haiku-4-5-20251001-v1:0
+      Events:
+        QueryEndpoint:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ZoomRAGApi
+            Path: /query
+            Method: POST
+    Metadata:
+      SamResourceId: QueryLambda
+  ZoomRAGApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: zoom-rag-api
+      StageName: prod
+      Auth:
+        DefaultAuthorizer: CognitoAuth
+        Authorizers:
+          CognitoAuth:
+            UserPoolArn:
+              Ref: CognitoUserPoolArn
+      Cors:
+        AllowMethods: '''GET,POST,OPTIONS'''
+        AllowHeaders: '''Content-Type,Authorization'''
+        AllowOrigin: '''*'''
+  CloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Origins:
+        - Id: S3Origin
+          DomainName:
+            Fn::GetAtt:
+            - FrontendBucket
+            - RegionalDomainName
+          S3OriginConfig:
+            OriginAccessIdentity: ''
+        DefaultCacheBehavior:
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+          Compress: true
+        CustomErrorResponses:
+        - ErrorCode: 404
+          ResponseCode: 200
+          ResponsePagePath: /index.html
+        - ErrorCode: 403
+          ResponseCode: 200
+          ResponsePagePath: /index.html
+Outputs:
+  ApiEndpoint:
+    Description: API Gateway endpoint for backend Lambda
+    Value:
+      Fn::Sub: https://${ZoomRAGApi}.execute-api.${AWS::Region}.amazonaws.com/prod
+    Export:
+      Name:
+        Fn::Sub: ${AWS::StackName}-ApiEndpoint
+  TranscriptBucketName:
+    Description: S3 bucket for storing Zoom transcripts
+    Value:
+      Ref: TranscriptBucket
+    Export:
+      Name:
+        Fn::Sub: ${AWS::StackName}-TranscriptBucket
+  FrontendBucketName:
+    Description: S3 bucket containing frontend files
+    Value:
+      Ref: FrontendBucket
+    Export:
+      Name:
+        Fn::Sub: ${AWS::StackName}-FrontendBucket
+  FrontendBucketUrl:
+    Description: Frontend S3 website URL
+    Value:
+      Fn::GetAtt:
+      - FrontendBucket
+      - WebsiteURL
+    Export:
+      Name:
+        Fn::Sub: ${AWS::StackName}-FrontendUrl
+  CloudFrontUrl:
+    Description: CloudFront distribution hostname
+    Value:
+      Fn::GetAtt:
+      - CloudFrontDistribution
+      - DomainName
+    Export:
+      Name:
+        Fn::Sub: ${AWS::StackName}-CloudFrontUrl
+  DataIngestionFunctionArn:
+    Description: Data ingestion Lambda ARN
+    Value:
+      Fn::GetAtt:
+      - DataIngestionLambda
+      - Arn
+    Export:
+      Name:
+        Fn::Sub: ${AWS::StackName}-DataIngestionArn
+  DataProcessingFunctionArn:
+    Description: Data processing Lambda ARN
+    Value:
+      Fn::GetAtt:
+      - DataProcessingLambda
+      - Arn
+    Export:
+      Name:
+        Fn::Sub: ${AWS::StackName}-DataProcessingArn
+  QueryFunctionArn:
+    Description: Query Lambda ARN
+    Value:
+      Fn::GetAtt:
+      - QueryLambda
+      - Arn
+    Export:
+      Name:
+        Fn::Sub: ${AWS::StackName}-QueryArn

@@ -1,0 +1,25 @@
+WEBVTT
+
+00:00:01.000 --> 00:00:08.000
+<v Priya> Today's meeting is about the next production release for the customer portal.
+
+00:00:09.000 --> 00:00:17.000
+<v Daniel> The release is scheduled for Monday at 9 PM Eastern Time.
+
+00:00:18.000 --> 00:00:27.000
+<v Priya> Before deployment, the database backup and security scan must both complete successfully.
+
+00:00:28.000 --> 00:00:37.000
+<v Daniel> If the security scan reports a critical vulnerability, the deployment must be cancelled.
+
+00:00:38.000 --> 00:00:47.000
+<v Priya> After deployment, the team will monitor error rate, CPU utilization, memory usage, and application response time.
+
+00:00:48.000 --> 00:00:57.000
+<v Daniel> The production monitoring period will be two hours.
+
+00:00:58.000 --> 00:01:08.000
+<v Priya> If there is a major production issue, the rollback plan is to redeploy the previous application version.
+
+00:01:09.000 --> 00:01:18.000
+<v Daniel> Final decision: deployment Monday at 9 PM Eastern Time, with security validation before release and two hours of production monitoring.

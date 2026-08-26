@@ -1,0 +1,40 @@
+WEBVTT
+
+00:00:01.000 --> 00:00:08.000
+<v Abhilash> Good morning team. Today we need to finalize the production deployment plan for the payments application.
+
+00:00:09.000 --> 00:00:16.000
+<v Sarah> The application team completed functional testing yesterday and all critical test cases passed.
+
+00:00:17.000 --> 00:00:25.000
+<v Michael> Performance testing also completed successfully. The application remained stable during the expected production load.
+
+00:00:26.000 --> 00:00:35.000
+<v Abhilash> Based on the testing results, we will schedule the production deployment for Friday at 8 PM Eastern Time.
+
+00:00:36.000 --> 00:00:43.000
+<v Sarah> The deployment will use the GitLab CI/CD pipeline and the application will be deployed to OpenShift.
+
+00:00:44.000 --> 00:00:52.000
+<v Michael> Before deployment, SonarQube validation and automated regression tests must complete successfully.
+
+00:00:53.000 --> 00:01:02.000
+<v Abhilash> If any critical validation fails, the pipeline must stop and the production deployment should not continue.
+
+00:01:03.000 --> 00:01:12.000
+<v Sarah> We also confirmed that the database backup will be taken at 7:30 PM before the application deployment begins.
+
+00:01:13.000 --> 00:01:22.000
+<v Michael> The rollback plan is to restore the previous application version and database backup if a critical production issue occurs.
+
+00:01:23.000 --> 00:01:32.000
+<v Abhilash> Dynatrace will be used to monitor application health, response time, error rate, and infrastructure metrics after deployment.
+
+00:01:33.000 --> 00:01:41.000
+<v Sarah> The team agreed to monitor production closely for one hour after the deployment completes.
+
+00:01:42.000 --> 00:01:50.000
+<v Michael> If there are no critical alerts during that monitoring window, the release will be considered successful.
+
+00:01:51.000 --> 00:02:00.000
+<v Abhilash> Great. Final decision: production deployment Friday at 8 PM Eastern, database backup at 7:30 PM, GitLab pipeline deployment to OpenShift, with Dynatrace monitoring after release.

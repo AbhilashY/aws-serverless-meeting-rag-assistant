@@ -1,0 +1,13 @@
+version = 0.1
+
+[default.deploy.parameters]
+stack_name = "meeting-rag-ai-assistant"
+resolve_s3 = true
+s3_prefix = "meeting-rag-ai-assistant"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "BedrockKBId=\"GJ7PHG8TNO\" BedrockDataSourceId=\"3MPX5KOWPT\" OpenSearchEndpoint=\"https://bootstrap.invalid\" ZoomSecretsArn=\"arn:aws:secretsmanager:us-east-1:133363051443:secret:zoom/api-credentials-qgmZmA\" CognitoUserPoolArn=\"arn:aws:cognito-idp:us-east-1:133363051443:userpool/us-east-1_4K5BHc2P1\""
+image_repositories = []
+
+[default.global.parameters]
+region = "us-east-1"
