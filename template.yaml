@@ -206,6 +206,7 @@ Resources:
 
       Auth:
         DefaultAuthorizer: CognitoAuth
+        AddDefaultAuthorizerToCorsPreflight: false  
         Authorizers:
           CognitoAuth:
             UserPoolArn: !Ref CognitoUserPoolArn
@@ -213,7 +214,7 @@ Resources:
       Cors:
         AllowMethods: "'GET,POST,OPTIONS'"
         AllowHeaders: "'Content-Type,Authorization'"
-        AllowOrigin: "'*'"
+        AllowOrigin: "'https://d20v5bvqrka4c1.cloudfront.net'"
 
   # ------------------------------------------------------------
   # CLOUDFRONT

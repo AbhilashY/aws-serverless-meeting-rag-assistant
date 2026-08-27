@@ -8,6 +8,12 @@ import boto3
 bedrock_agent_runtime = boto3.client("bedrock-agent-runtime")
 bedrock_runtime = boto3.client("bedrock-runtime")
 
+CORS_HEADERS = {
+    "Content-Type": "application/json",
+    "Access-Control-Allow-Origin": "https://d20v5bvqrka4c1.cloudfront.net",
+    "Access-Control-Allow-Headers": "Content-Type,Authorization",
+    "Access-Control-Allow-Methods": "POST,OPTIONS",
+}
 
 def _retrieve_context(
     knowledge_base_id: str,
@@ -241,10 +247,7 @@ def lambda_handler(
 
         return {
             "statusCode": 200,
-            "headers": {
-                "Content-Type":
-                "application/json"
-            },
+            "headers": CORS_HEADERS,
             "body": json.dumps(
                 {
                     "query":
@@ -274,10 +277,7 @@ def lambda_handler(
 
         return {
             "statusCode": 500,
-            "headers": {
-                "Content-Type":
-                "application/json"
-            },
+            "headers": CORS_HEADERS,
             "body": json.dumps(
                 {
                     "error":

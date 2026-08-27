@@ -1,18 +1,25 @@
 import React, { useEffect, useState } from 'react';
-import { Auth } from 'aws-amplify';
-import awsConfig from './config/awsConfig';
+import {
+  getCurrentUser,
+  signIn,
+  signOut
+} from 'aws-amplify/auth';
+
+import './config/awsConfig';
 import RAGQueryInterface from './components/RAGQueryInterface';
 import './App.css';
 
 interface User {
   username: string;
-  email?: string;
-  name?: string;
 }
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -21,41 +28,61 @@ const App: React.FC = () => {
 
   const checkUser = async () => {
     try {
-      const currentUser = await Auth.currentAuthenticatedUser();
+      const currentUser = await getCurrentUser();
+
       setUser({
-        username: currentUser.username,
-        email: currentUser.attributes?.email,
-        name: currentUser.attributes?.name
+        username: currentUser.username
       });
-      setError(null);
-    } catch (err) {
-      console.log('User not authenticated, redirecting to login...');
-      handleLogin();
+    } catch {
+      setUser(null);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleLogin = async () => {
+  const handleLogin = async (
+    event: React.FormEvent
+  ) => {
+    event.preventDefault();
+
     try {
-      await Auth.signIn({
-        username: '',
-        password: ''
+      setError(null);
+
+      const result = await signIn({
+        username: email,
+        password
       });
-    } catch (err) {
+
+      if (result.isSignedIn) {
+        await checkUser();
+      } else {
+        setError(
+          `Additional authentication step required: ${result.nextStep.signInStep}`
+        );
+      }
+    } catch (err: any) {
       console.error('Login error:', err);
-      // Cognito will handle redirect to login page
+
+      setError(
+        err?.message ||
+        'Unable to sign in. Please check your credentials.'
+      );
     }
   };
 
   const handleLogout = async () => {
     try {
-      await Auth.signOut();
+      await signOut();
+
       setUser(null);
-      window.location.href = '/';
+      setEmail('');
+      setPassword('');
     } catch (err) {
       console.error('Logout error:', err);
-      setError('Failed to logout. Please try again.');
+
+      setError(
+        'Failed to logout. Please try again.'
+      );
     }
   };
 
@@ -72,12 +99,46 @@ const App: React.FC = () => {
     return (
       <div className="login-container">
         <div className="login-box">
-          <h1>🎥 Zoom RAG Insight Engine</h1>
-          <p>Query your meeting transcripts with AI</p>
-          <button className="login-button" onClick={handleLogin}>
-            Sign In with Cognito
-          </button>
-          {error && <p className="error-message">{error}</p>}
+          <h1>🎥 Meeting RAG Assistant</h1>
+
+          <p>
+            Query your meeting transcripts with AI
+          </p>
+
+          <form onSubmit={handleLogin}>
+            <input
+              type="text"
+              placeholder="Username or email"
+              value={email}
+              onChange={(event) =>
+                setEmail(event.target.value)
+              }
+              required
+            />
+
+            <input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(event) =>
+                setPassword(event.target.value)
+              }
+              required
+            />
+
+            <button
+              type="submit"
+              className="login-button"
+            >
+              Sign In
+            </button>
+          </form>
+
+          {error && (
+            <p className="error-message">
+              {error}
+            </p>
+          )}
         </div>
       </div>
     );
@@ -86,9 +147,16 @@ const App: React.FC = () => {
   return (
     <div className="app-container">
       <RAGQueryInterface />
+
       <div className="user-menu">
-        <span className="user-info">👤 {user.name || user.email || user.username}</span>
-        <button className="logout-button" onClick={handleLogout}>
+        <span className="user-info">
+          👤 {user.username}
+        </span>
+
+        <button
+          className="logout-button"
+          onClick={handleLogout}
+        >
           Logout
         </button>
       </div>
