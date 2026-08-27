@@ -833,23 +833,6 @@ Built with modern AWS serverless technologies:
 
 ---
 
-## Authors & Contributors
-
-### Core Team
-
-**Nitesh Kashyap**
-- LinkedIn: [Nitesh Kashyap](https://www.linkedin.com/in/nitesh-kashyap-13741814)
-
-**Kislaya Srivastava**
-- LinkedIn: [Kislaya Srivastava](https://www.linkedin.com/in/kislaya-srivastava)
-
-**Raghunath Erumal**
-- LinkedIn: [Raghunath Erumal](https://www.linkedin.com/in/raghunath-erumal)
-
-For questions or contributions, please reach out through GitHub or LinkedIn.
-
----
-
 **Last Updated:** August 2026  
 **Status:** Production Ready  
 **Version:** 1.0.0
